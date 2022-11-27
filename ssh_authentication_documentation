@@ -1,0 +1,381 @@
+SSH Key Linux secure remote authentication to your Server 
+
+  
+
+# sudo apt install openssh-server -y 
+
+  
+
+  
+
+  
+
+   
+
+  
+
+SSH Overview and Setup 
+
+  
+
+1 Install openssh on all the servers and set it up to work on all the servers 
+
+  
+
+Make shure OpenSSH is installed on the workstation and on the remote servers by running the following command. 
+
+  
+
+# sudo apt install openssh-server -y 
+
+  
+
+Then make sure that ssh is up and running: 
+
+# sudo systemctl status ssh 
+
+  
+
+Then make sure that ssh is listening to the ssh ports: 
+
+# sudo ss -ltup 
+
+  
+
+    Check the firewall configuration of the servers  
+
+  
+
+Check if ufw is active by running the following command. 
+
+# sudo ufw status 
+
+  
+
+If it is not running, run the following command. 
+
+#  sudo ufw enable 
+
+  
+
+Then allow the server to accept incoming connection through ssh : 
+
+#  sudo ufw allow ssh 
+
+  
+
+  
+
+2 Connect to each server from the workstation,  
+
+answer ‘yes’ to initial connection prompt 
+
+# ssh <the ip address of the server you want to connect to 
+
+  
+
+3 Create an SSH key pair (with a passphrase) for your normal user account 
+
+            Before we do that, let’s check if there is any ssh key stored on the work station server 
+
+# ls -la .ssh 
+
+Create the ssh key 
+
+# ssh-keygen -t ed25519 -C “Felix default” 
+
+  
+
+It is recommended to insert a passephrase! 
+
+  
+
+4 Copy that key to each server 
+
+  
+
+# ssh-copy-id -i ~/. <the name of the public key file> <the ip address of the server where you want to copy the key to> 
+
+  
+
+5 Create an SSH key that is specific to Ansible 
+
+  
+
+# ssh-keygen -t ed25519 -C “ansible" 
+
+  
+
+Let give it a different directory and name to not overwrite the previous ssh key we generated previously. The path should be as follow: 
+
+/home/<username>/.ssh/ansible 
+
+  
+
+Here there is no need to create a passphrase! 
+
+  
+
+  
+
+6 Copy that key to the remote server 
+
+  
+
+# ssh-copy-id -i ~/.ssh/id_ed25519.pub <the ip address of the remote server> 
+
+  
+
+We will be asked the passphrase of the previous ssh key we generated and this is to facilitate the copy of the ansible dedicated key to the remote server. 
+
+  
+
+7 Check if the authorized key has been copied in the remote servers 
+
+  
+
+Let’s go to our remote server and find out if the the authorized_key has been copied. 
+
+  
+
+# cat .ssh/authorized_keys 
+
+  
+
+The output will show both the two ssh key that we have copid previously: The default one and the one dedicated to ansible. 
+
+  
+
+8 Connect to the remote servers 
+
+Now let’s try to connect to a server I must specify the ssh key to be used 
+
+  
+
+# ssh -I ~/.ssh/ansible <the ip address of the remote server> 
+
+  
+
+  
+
+9 How to avoid typing the passphrase 
+
+  
+
+If you don’t want to type the passphrase to ssh into the remote servers, you should follow the steps below. 
+
+  
+
+# eval $(ssh-agent) 
+
+  
+
+The output will give me a process id: Agent pid 2362 
+
+This would let the ssh agent to run in the background and we can check this by running the following command: 
+
+  
+
+# ps aux | grep 2362 
+
+  
+
+Now I can add the passphrase so that I could not need to type it again during my actual logging session. 
+
+# ssh-add 
+
+Il will be asked to enter the passphrase for /home/jay/.ssh/id_ed25519, and it will tell me that the identity was added. 
+
+  
+
+With this done, I mean the ssh-agent running in the background and the passphrase being inserted, I can ssh into the remote server without typing the passphrase nomore. 
+
+  
+
+# ssh <remote server ip address> 
+
+  
+
+  
+
+    How to shorten the passphrase 
+
+  
+
+  
+
+  
+
+  
+
+  
+
+We can create an alias to shorten the passphrase to type. 
+
+we should create an alias. 
+
+  
+
+# alias ssha=’eval $(ssh-agent) && ssh-add’ 
+
+  
+
+Now whenever I’m asked to type the passphrase, I would just type ‘ssha’ and it will work perfectly.  
+
+  
+
+10 How to Permanently avoid typing the passphrase 
+
+  
+
+Whenever we shut down the server and turn it up again, this setting to avoid passphrase typing will no longer work again because the setting is not permanent. So, let’s set this in a way that it will be permanent, so that we will permanently avoid typing the passphrase. 
+
+  
+
+We need to use a text editor to edit the .bashrc file.  
+
+  
+
+# vim .bashrc 
+
+When we are inside the file, there should be a lot of stuff there but let scroll to where there some alias comment and add the alias we created previously. It should be something like this. 
+
+# ssh agent 
+
+alias ssha=’eval $(ssh-agent) && ssh-add’ 
+
+Then save and exit the file editor. Now that the ssh agent is store in the .bashrc file, we will no longer need to type a passphrase in order to ssh into a remote server. 
+
+Let test it now, by trying to connect to our remote servers where we copied the ssh key before. 
+
+# ssh <ip address of the remote server> 
+
+  
+
+  
+
+Create the inventory file that will contain the list of the remote server that will be controlled by ansible. 
+
+  
+
+  
+
+  
+
+  
+
+Connect to the host running the following command: 
+
+# ansible all --key-file  ~/.ssh/ansible -i  inventory -m ping 
+
+  
+
+Then create the ansible.cfg file 
+
+# vim ansible.cfg 
+
+  
+
+Inside that file there should be the following informations 
+
+  
+
+[defaults] 
+
+Inventory=inventory 
+
+private_key_file = ~/.ssh/ansible 
+
+  
+
+Now you since the inventory information is stored into the ansible.cfg file, we can just run the following command to ping our hosts servers. 
+
+# ansible all -m ping 
+
+  
+
+We can also list down the list of the host server to control through the command below. 
+
+  
+
+# ansible all --list-hosts 
+
+We can also now have detailed information about our host servers by running the following command: 
+
+  
+
+# ansible all -m gather_facts  
+
+# ansible all -m gather --limit <the ip address of the choose host server> 
+
+  
+
+  
+
+  
+
+  
+
+RUNING ADHOC COMMANDS 
+
+  
+
+# ansible all -m apt -a update_cache=true --become --ask-become-pass 
+
+# ansible all -m apt -a update -a name=<package name> --become --ask-become-pass 
+
+  
+
+  
+
+  
+
+First play book 
+
+  
+
+  
+
+--- 
+
+    Hosts: 
+
+sudo 
+
+Consolidate the ansible-playbook 
+
+We should add some variable inside the playbook. 
+
+---  
+
+-  hosts: all 
+
+    become: true 
+
+    tasks:  
+
+    - name: install apache and php 
+
+       apt: 
+
+            name: 
+
+                 - “{{ apache_package }}” 
+
+                 - “{{php_package }}” 
+
+             state: latest 
+
+             update_cache: yes 
+
+  
+
+  
+
+  
+
+  
+
+ 
+
+ 

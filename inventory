@@ -1,11 +1,12 @@
 
 [webserver]
-192.168.100.13
-#192.168.100.15
+#192.168.100.12 apache_package=apache2 php_package=libapache2-mod-php
+192.168.100.15 apache_package=apache2 php_package=libapache2-mod-php
 
 [dbserver]
-#192.168.100.14
-192.168.100.20
+#192.168.100.14 apache_package=apache2 php_package=libapache2-mod-php
+192.168.100.20 apache_package=httpd php_package=php
+
 
 
 

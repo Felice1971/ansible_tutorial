@@ -7,8 +7,9 @@
   - name: update repository index
     apt:
       update_cache: yes
+
     when: ansible_distribution == "Ubuntu"
-      
+
   - name: install apache2 package
     apt:
       name: apache2
@@ -22,7 +23,7 @@
     when: ansible_distribution == "Ubuntu"
 
 
-  
+
   - name: update repository index
     dnf:
       update_cache: yes
@@ -39,6 +40,3 @@
       name: php
       state: latest
     when: ansible_distribution == "CentOS"
- 
-
-
